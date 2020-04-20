@@ -277,8 +277,6 @@ typedef struct {
     uchar hw_ileds, hw_ileds_old, ileds;
     // Color dithering in use
     char dither;
-    // Flag to check if large macros should be sent delayed
-    uint delay;
     // Keymap that should be applied to this device
     key* keymap;
     // Buffer used to store non-HID interrupt reads from the input thread.

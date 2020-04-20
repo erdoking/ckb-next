@@ -26,7 +26,7 @@
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>5</number>
      </property>
      <property name="usesScrollButtons">
       <bool>false</bool>
@@ -1289,7 +1289,7 @@
          <item>
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Macro Key Actions</string>
+            <string>Key Actions</string>
            </property>
           </widget>
          </item>
@@ -1304,53 +1304,8 @@
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="delayButtons">
-           <property name="spacing">
-            <number>6</number>
-           </property>
-           <property name="sizeConstraint">
-            <enum>QLayout::SetMinimumSize</enum>
-           </property>
-           <item>
-            <widget class="QRadioButton" name="rb_delay_no">
-             <property name="whatsThis">
-              <string>Disable delay</string>
-             </property>
-             <property name="text">
-              <string>No &amp;delay</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="rb_delay_default">
-             <property name="whatsThis">
-              <string>Set delay to default values: 20us up to 15 chars, 200us above</string>
-             </property>
-             <property name="text">
-              <string>de&amp;fault</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-             <property name="autoExclusive">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="rb_delay_asTyped">
-             <property name="whatsThis">
-              <string>Delay will be the same as it was recorded</string>
-             </property>
-             <property name="text">
-              <string>as t&amp;yped</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
+          <layout class="QGridLayout" name="gridLayout_6" columnstretch="0,0,0">
+           <item row="4" column="2">
             <spacer name="horizontalSpacer_27">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -1362,6 +1317,78 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QRadioButton" name="rb_delay_default">
+               <property name="whatsThis">
+                <string>Set delay to default values: 20us up to 15 chars, 200us above</string>
+               </property>
+               <property name="text">
+                <string>de&amp;fault</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+               <property name="autoExclusive">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="rb_delay_asTyped">
+               <property name="whatsThis">
+                <string>Delay will be the same as it was recorded</string>
+               </property>
+               <property name="text">
+                <string>as t&amp;yped</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>Keystroke delay:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Record from:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QComboBox" name="captureTypeBox">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <item>
+              <property name="text">
+               <string>This device only</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>All ckb-next devices</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>All keyboards</string>
+              </property>
+             </item>
+            </widget>
            </item>
           </layout>
          </item>
@@ -1432,7 +1459,7 @@
            <item>
             <widget class="QLabel" name="label_2">
              <property name="text">
-              <string>Macro Name</string>
+              <string>Name</string>
              </property>
             </widget>
            </item>
@@ -1442,23 +1469,20 @@
            <item>
             <widget class="QLabel" name="label_3">
              <property name="text">
-              <string>Macro Sequence</string>
+              <string>Sequence</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPlainTextEdit" name="pteMacroText">
+            <widget class="NoUserInputTextEdit" name="pteMacroText">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="focusPolicy">
-              <enum>Qt::StrongFocus</enum>
-             </property>
              <property name="contextMenuPolicy">
-              <enum>Qt::NoContextMenu</enum>
+              <enum>Qt::DefaultContextMenu</enum>
              </property>
              <property name="acceptDrops">
               <bool>false</bool>
@@ -1473,10 +1497,13 @@
               <bool>false</bool>
              </property>
              <property name="readOnly">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="plainText">
               <string/>
+             </property>
+             <property name="textInteractionFlags">
+              <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
              </property>
             </widget>
            </item>
@@ -1490,26 +1517,22 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_7">
              <item>
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>Record macro</string>
+              <spacer name="horizontalSpacer_28">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
                </property>
-              </widget>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
              <item>
-              <widget class="QPushButton" name="btnStartMacro">
+              <widget class="ClickEventPushButton" name="btnStartMacro">
                <property name="text">
-                <string>Start</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="btnStopMacro">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="text">
-                <string extracomment="was passiert, wenn ich hier iregend einen Kommentar reinschreibe?">Stop</string>
+                <string>Start Recording</string>
                </property>
               </widget>
              </item>
@@ -1580,6 +1603,18 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>NoUserInputTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>nouserinputtextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ClickEventPushButton</class>
+   <extends>QPushButton</extends>
+   <header>clickeventpushbutton.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>tabWidget</tabstop>
   <tabstop>typingButton</tabstop>
@@ -1622,9 +1657,6 @@
   <tabstop>programKrBox</tabstop>
   <tabstop>programKrSIBox</tabstop>
   <tabstop>programKrModeBox</tabstop>
-  <tabstop>rb_delay_no</tabstop>
-  <tabstop>rb_delay_default</tabstop>
-  <tabstop>rb_delay_asTyped</tabstop>
   <tabstop>unbindButton</tabstop>
   <tabstop>resetButton</tabstop>
   <tabstop>cancelButton</tabstop>
@@ -1693,22 +1725,6 @@
     <hint type="destinationlabel">
      <x>339</x>
      <y>154</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btnClearMacro</sender>
-   <signal>clicked()</signal>
-   <receiver>btnStopMacro</receiver>
-   <slot>animateClick()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>711</x>
-     <y>238</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>618</x>
-     <y>238</y>
     </hint>
    </hints>
   </connection>

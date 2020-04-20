@@ -1,7 +1,9 @@
 #include <QStandardPaths>
 #include "rebindwidget.h"
 #include "ui_rebindwidget.h"
-#include <qdebug.h>     // lae.
+#include <QDebug>
+#include <QMessageBox>
+#include "kbmanager.h"
 
 static const int DPI_OFFSET = -KeyAction::DPI_CYCLE_UP + 1;
 static const int DPI_CUST_IDX = KeyAction::DPI_CUSTOM + DPI_OFFSET;
@@ -9,7 +11,7 @@ static const int DPI_CUST_IDX = KeyAction::DPI_CUSTOM + DPI_OFFSET;
 RebindWidget::RebindWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::RebindWidget),
-    bind(0), profile(0), macReader(0)
+    bind(0), profile(0), macroReader(0)
 {
     ui->setupUi(this);
     ui->lightWrapBox->hide();
@@ -59,6 +61,7 @@ RebindWidget::RebindWidget(QWidget *parent) :
 #else
     ui->progTipLabel->setText("Tip: use xdg-open to launch a file or directory. For instance, to open your home folder:\n  xdg-open " + QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
 #endif
+    connect(ui->tabWidget, &QTabWidget::currentChanged, this, &RebindWidget::tabChanged);
 }
 
 RebindWidget::~RebindWidget(){
@@ -413,7 +416,8 @@ void RebindWidget::on_applyButton_clicked(){
     // Because there is no serarate thread, we have to call it directly
     // (otherwise we could do Key char conversion step by step,
     // but so it is more easy to change the key definition):
-    on_btnStopMacro_clicked();
+    if(macroReader)
+        on_btnStartMacro_clicked();
     applyChanges(selection, true);
 }
 
@@ -457,9 +461,7 @@ void RebindWidget::setBox(QWidget* box){
     }
     // Clear macro panel
     if (box != ui->pteMacroBox) {
-        ui->pteMacroBox->setPlainText("");
-        ui->txtBuffer->setText("");
-        helpStatus(1);
+        on_btnClearMacro_clicked();
     }
 }
 
@@ -717,56 +719,89 @@ void RebindWidget::on_animButton_clicked(bool checked){
         ui->animBox->setCurrentIndex(1);
 }
 
-//////////
-/// \brief RebindWidget::on_btnStartMacro_clicked starts macro recording.
-/// A new notification channel and MacroReader are created to do the job.
-///
-/// The UI is protected against false clicking
-/// (e.g. if you type start and than Apply, the channel is closed in wrong order).
-///
-/// At this time, all neccessary params like macroNumber, macroPath, cmdFile etc. had been cached.
-///
 void RebindWidget::on_btnStartMacro_clicked() {
-    if (!macReader) {
-        bind->handleNotificationChannel(true);
-        macReader = new MacroReader(bind->getMacroNumber(), bind->getMacroPath(), ui->pteMacroBox, ui->pteMacroText);
-        // because of the second thread we need to disable three of the four bottom buttons.
-        // Clicking "Stop" will enable them again.
-        ui->applyButton->setEnabled(false);
-        ui->resetButton->setEnabled(false);
-        ui->unbindButton->setEnabled(false);
-        ui->btnStartMacro->setEnabled(false);
-        ui->btnStopMacro->setEnabled(true);
-        ui->rb_delay_asTyped->setEnabled(false);
-        ui->rb_delay_no->setEnabled(false);
-        ui->rb_delay_default->setEnabled(false);
-        helpStatus(2);
-    }
-}
+    // Get the capture type
+    CAPTURE_TYPE type = static_cast<CAPTURE_TYPE>(ui->captureTypeBox->currentIndex());
+    if (macroReader) {
+        macroReader->deleteLater();
+        macroReader = nullptr;
 
-//////////
-/// \brief RebindWidget::on_btnStopMacro_clicked ends the macro recording.
-/// Notify channel ist closed, the ReaderThread is deleted when the notification is really down.
-///
-/// Afterwards, the characters in the MacroBox are changed from KB-out format to cmd-in format.
-/// At last the UI changes to the new state.
-///
-void RebindWidget::on_btnStopMacro_clicked() {
-    if (macReader) {
-        bind->handleNotificationChannel(false);
-        delete macReader;
-        macReader = 0;
+        // Disable the macro notify node
+        if(type == CAPTURE_TYPE::CAPTURE_CURRENT_DEVICE) {
+            bind->handleNotificationChannel(false);
+        } else if (type == CAPTURE_TYPE::CAPTURE_ALL_DAEMON_DEVICES) {
+            foreach(Kb* dev, KbManager::devices()) {
+                dev->currentBind()->handleNotificationChannel(false);
+            }
+        }
+
+        //FIXME: Remove the last mouse click if the user stopped
+        // the capture by clicking on the Stop Recording button
+        if(type != CAPTURE_TYPE::CAPTURE_ALL_KEYBOARDS)
+            qDebug() << ui->btnStartMacro->isClickedByMouse();
+
         convertMacroBox();
         ui->applyButton->setEnabled(true);
         ui->resetButton->setEnabled(true);
         ui->unbindButton->setEnabled(true);
-        ui->btnStartMacro->setEnabled(true);
-        ui->btnStopMacro->setEnabled(false);
+        ui->btnStartMacro->setText(tr("Start Recording"));
         ui->rb_delay_asTyped->setEnabled(true);
-        ui->rb_delay_no->setEnabled(true);
         ui->rb_delay_default->setEnabled(true);
-        helpStatus(3);
+        ui->lbl_macro->setText(tr("Click Apply or manually edit Macro Key Actions."));
+        ui->pteMacroBox->setReadOnly(false);
+        ui->pteMacroText->eatKeyEvents(false);
+        ui->pteMacroText->releaseKeyboard();
+        ui->captureTypeBox->setEnabled(true);
+        return;
     }
+    ui->pteMacroText->setFocus();
+
+    // Start the appropriate capture mode
+    QStringList devicePaths;
+
+    // Enable the notify node
+    if(type == CAPTURE_TYPE::CAPTURE_CURRENT_DEVICE) {
+        bind->handleNotificationChannel(true);
+        devicePaths.append(bind->getMacroPath());
+    } else if (type == CAPTURE_TYPE::CAPTURE_ALL_DAEMON_DEVICES) {
+        foreach(Kb* dev, KbManager::devices()) {
+            dev->currentBind()->handleNotificationChannel(true);
+            devicePaths.append(dev->getMacroPath());
+        }
+    }
+    // Else, pass an empty stringlist. FIXME
+    macroReader = new MacroReader(devicePaths);
+    connect(macroReader, &MacroReader::macroLineRead, this, &RebindWidget::macroLineRead);
+
+    if(type == CAPTURE_TYPE::CAPTURE_ALL_KEYBOARDS){
+        connect(ui->pteMacroText, &NoUserInputTextEdit::macroKeyEvent, macroReader, &MacroReader::translateQKeyEvent);
+        // Pause macro recording if an error is detected (unknown keypress)
+        connect(macroReader, &MacroReader::macroReadError, this, [=](QString k, QString m) {
+            ui->pteMacroText->eatKeyEvents(false);
+            //macroReader->blockSignals(true);
+            ui->pteMacroText->releaseKeyboard();
+            QMessageBox::warning(this, tr("Unknown key combination pressed"), tr("An unknown key combination (%1, %2) has been pressed.\n"
+                                                                     "Make sure your keyboard layout is set to English - United States while recording macros.")
+                                 .arg(k, m));
+            ui->pteMacroText->grabKeyboard();
+            //macroReader->blockSignals(false);
+            ui->pteMacroText->eatKeyEvents(true);
+            macroReader->resetTimer();
+        });
+    }
+
+    // Disable the buttons while recording
+    ui->applyButton->setEnabled(false);
+    ui->resetButton->setEnabled(false);
+    ui->unbindButton->setEnabled(false);
+    ui->btnStartMacro->setText(tr("Stop Recording"));
+    ui->rb_delay_asTyped->setEnabled(false);
+    ui->rb_delay_default->setEnabled(false);
+    ui->lbl_macro->setText(tr("Type your macro and click stop when finished."));
+    ui->pteMacroBox->setReadOnly(true);
+    ui->pteMacroText->eatKeyEvents(true);
+    ui->pteMacroText->grabKeyboard();
+    ui->captureTypeBox->setEnabled(false);
 }
 
 //////////
@@ -777,27 +812,10 @@ void RebindWidget::on_btnStopMacro_clicked() {
 /// Reset the button to the default value or do not touch it? Not clear is ignored.
 ///
 void RebindWidget::on_btnClearMacro_clicked() {
-    helpStatus(1);
-}
-
-//////////
-/// \brief RebindWidget::helpStatus shows a help line in the ui.
-/// \param status determines what to display.
-///
-void RebindWidget::helpStatus(int status) {
-    switch (status) {
-    case 1:
-        ui->lbl_macro->setText(tr("Type in a macro name in the comment box and click start."));
-        break;
-    case 2:
-        ui->lbl_macro->setText(tr("Type your macro and click stop when finished."));
-        break;
-    case 3:
-        ui->lbl_macro->setText(tr("Click Apply or manually edit Macro Key Actions."));
-        break;
-    default:
-        ui->lbl_macro->setText(tr("Invalid status in RebindWidget::helpStatus (%1)").arg(status));
-    }
+    ui->pteMacroBox->setPlainText("");
+    ui->txtBuffer->setText("");
+    ui->lbl_macro->setText(tr("Click Start Recording or manually edit Macro Key Actions."));
+    macroLines.clear();
 }
 
 //////////
@@ -833,29 +851,17 @@ void RebindWidget::convertMacroBox() {
         in.replace(QRegExp("=\\d+,"), ",");  // Delete the timing infos, use default value
         in.replace(QRegExp("=\\d+$"), "");   // The last entry is without comma
     }
-    if (ui->rb_delay_no->isChecked()) {
+    /*if (ui->rb_delay_no->isChecked()) {
         in.replace(QRegExp("=\\d+,"), "=0,");  // Set timing infos to zero for no delay
         in.replace(QRegExp("=\\d+$"), "=0");   // Again the last entry w/o comma
         in.replace(QRegExp("([\\+\\-]\\w+),"), "\\1=0,");  // If no delay is given, force it to zero
         in.replace(QRegExp("([\\+\\-]\\w+)$"), "\\1=0");
-    }
+    }*/
 
     // Show the new format by replacing the older one.
     ui->pteMacroBox->setPlainText(in);
 }
 
-//////////
-/// \brief RebindWidget::on_rb_delay_no_toggled
-/// \param checked
-/// The following slots are triggerd by changing the mutual exclusive radio buttons
-/// when choosing the delay.
-/// They are called, if the button ist enabled.
-/// This first one should disable all delay.
-///
-void RebindWidget::on_rb_delay_no_toggled(bool checked)
-{
-    convertMacroBox();
-}
 
 //////////
 /// \brief RebindWidget::on_rb_delay_asTyped_toggled
@@ -898,5 +904,61 @@ void RebindWidget::setCorrectRadioButton (QString macdef) {
         ui->rb_delay_asTyped->setChecked(true);
         return;
     }
-    ui->rb_delay_no->setChecked(true);
+    //ui->rb_delay_no->setChecked(true);
+}
+
+void RebindWidget::macroLineRead(QString line, qint64 ustime, bool keydown, bool printable){
+    macroLines.append(macroLine(line, ustime, keydown, printable));
+
+    // Add keystroke to the key actions textedit
+    // "+k", "-k", these can be represented as text
+    qDebug() << line.at(0);
+    QString lineWithoutPrefix = line.mid(1);
+    if(lineWithoutPrefix != "mouse1")
+        ui->pteMacroText->setFocus();
+    if(keydown){
+        ui->pteMacroText->moveCursor(QTextCursor::End);
+        if(printable)
+            ui->pteMacroText->insertPlainText(lineWithoutPrefix);
+        else
+            ui->pteMacroText->insertPlainText("<" + lineWithoutPrefix + ">");
+    }
+
+    qDebug() << ustime;
+    QString l;
+    if(ustime != -1)
+        l = ("=" + QString::number(macroLines.last().usTime) + ",");
+    l.append(line);
+
+    ui->pteMacroBox->moveCursor(QTextCursor::End);
+    ui->pteMacroBox->insertPlainText(l);
+
+}
+
+void RebindWidget::tabChanged(int idx){
+    if(macroReader)
+        return;
+    // We monitor the tabs, and when we switch to the macro tab, we select the appropriate capture method
+    if(ui->tabWidget->currentWidget() == ui->macroTab){
+        if(bind->map().isKeyboard()){
+            ui->captureTypeBox->setCurrentIndex(CAPTURE_TYPE::CAPTURE_CURRENT_DEVICE);
+        } else {
+            // Check if there are any daemon-managed keyboards connected, and if so, capture from them too
+            foreach(const Kb* dev, KbManager::devices()){
+                if(dev->isKeyboard()){
+                    ui->captureTypeBox->setCurrentIndex(CAPTURE_TYPE::CAPTURE_ALL_DAEMON_DEVICES);
+                    return;
+                }
+            }
+            // If none were found, capture from everything as a last resort
+            ui->captureTypeBox->setCurrentIndex(CAPTURE_TYPE::CAPTURE_ALL_KEYBOARDS);
+        }
+    }
+}
+
+// This is automatically called whenever setCurrentIndex is called programmatically as well
+void RebindWidget::on_captureTypeBox_currentIndexChanged(int index){
+    captureType = (CAPTURE_TYPE)index;
+    if(captureType == CAPTURE_ALL_KEYBOARDS)
+        QMessageBox::warning(this, tr("Capture all keyboards"), tr("Blah blah not as accurate"), QMessageBox::Ok);
 }

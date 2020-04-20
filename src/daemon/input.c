@@ -72,6 +72,9 @@ static pthread_t macro_pt_first() {
     return pt_head? pt_head->thread_id : 0;
 }
 
+// Default macro delay
+const struct timespec macrodelay = { .tv_nsec = 1000000 };
+// Initial repeat delay
 const struct timespec init_repeat_delay = { .tv_nsec = 250000000 };
 
 ///
@@ -113,14 +116,8 @@ static void* play_macro(void* param) {
                 queued_mutex_unlock(mmutex(kb));           ///< use this unlock / relock for enablling the parallel running colorization
                 if (action->delay != UINT_MAX && action->delay) {    ///< local delay set
                     clock_nanosleep(CLOCK_MONOTONIC, 0, &(struct timespec) {.tv_nsec = action->delay * 1000}, NULL);
-                } else if (kb->delay != UINT_MAX && kb->delay) {     ///< use default global delay
-                    clock_nanosleep(CLOCK_MONOTONIC, 0, &(struct timespec) {.tv_nsec = kb->delay * 1000}, NULL);
-                } else if (a < (macro->actioncount - 1)) {  ///< use delays depending on macro length
-                    if (a > 200) {
-                        clock_nanosleep(CLOCK_MONOTONIC, 0, &(struct timespec) {.tv_nsec = action->delay * 100000}, NULL);
-                    } else if (a > 20) {
-                        clock_nanosleep(CLOCK_MONOTONIC, 0, &(struct timespec) {.tv_nsec = 30000}, NULL);
-                    }
+                } else {
+                    clock_nanosleep(CLOCK_MONOTONIC, 0, &macrodelay, NULL);
                 }
                 queued_mutex_lock(mmutex(kb));
             }
@@ -153,6 +150,7 @@ static void* play_macro(void* param) {
     pthread_mutex_unlock(mmutex2(kb));  ///< for the linked list and the mvar
 
     queued_mutex_unlock(mmutex(kb));   ///< Sync keyboard input/output and colorization
+    free(param);
     return 0;
 }
 
@@ -175,7 +173,7 @@ static void inputupdate_keys(usbdevice* kb){
             if (macromask(input->keys, macro->combo)) {
                 if (!macro->triggered) {
                     parameter_t* params = malloc(sizeof(parameter_t));
-                    if (params == 0) {
+                    if (params == NULL) {
                         perror("inputupdate_keys got no more mem:");
                     } else {
                         pthread_t thread = 0;
