@@ -53,6 +53,7 @@ public:
     enum Model {
         NO_MODEL = -1,
         K55,
+        K57,
         K63,
         K65,
         K68,

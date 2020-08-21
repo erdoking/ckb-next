@@ -1084,6 +1084,8 @@ KeyMap::Model KeyMap::getModel(const QString& name){
     QString lower = name.toLower();
     if(lower == "k55")
         return K55;
+    if(lower == "k57")
+        return K57;
     if(lower == "k63")
         return K63;
     if(lower == "k65")

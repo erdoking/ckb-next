@@ -44,7 +44,10 @@
 #define V_CORSAIR            0x1b1c
 
 #define P_K55                0x1b3d
-#define IS_K55(kb)           ((kb)->vendor == V_CORSAIR && (kb)->product == P_K55)
+//#define IS_K55(kb)           ((kb)->vendor == V_CORSAIR && (kb)->product == P_K55)
+
+#define P_K57                0x1b6e
+#define IS_K55(kb)           ((kb)->vendor == V_CORSAIR && ((kb)->product == P_K55 || (kb)->product == P_K57))
 
 #define P_K63_NRGB           0x1b40
 #define IS_K63(kb)           ((kb)->vendor == V_CORSAIR && (kb)->product == P_K63_NRGB)

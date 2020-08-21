@@ -12,6 +12,7 @@ Hash: SHA512
 
 # Vendor  Model            FW    URL                                                                Min.ckb File Name                            SHA256                                                              ProductID
   Corsair K55RGB           30.06 https://www3.corsair.com/software/CUE_V3/K55RGB.zip                0.2.9   K55_App_v3006.bin                    e84aa88ec7f90ddac94f06f4f4e887ce06f013a18a22ece5f367f97899514748    0x1b3d
+  Corsair K57RGBWL          0.15 https://www3.corsair.com/software/CUE_V3/K57RGBWIRELESS.zip        0.3.2   Attila_Application_Firmware_v0.15.149.bin   34540c0df92e1a2f060d2bf7ad48c2e15c59197ce37cd5f6db099d5874aad3f6    0x1b6e
   Corsair K63               3.08 https://www3.corsair.com/software/CUE_V3/K63.zip                   0.3.2   K63_App_v308.bin                     1b28b50d7338b9e2cf44ebf6130adb973c6aa5770ba7afa255a61ff096850e61    0x1b40
   Corsair K63WL             0.00 https://www3.corsair.com/software/CUE_V3/K63WIRELESS.zip           0.2.9   00000000000000000.bin                0000000000000000000000000000000000000000000000000000000000000000    0x1b45
   Corsair K65RGB            3.08 https://www3.corsair.com/software/CUE_V3/CGK65RGB.zip              0.3.2   K65%20RGB_App_v308.bin               5173de835e2614981a43184f4cca72f96361160a343d17e016f41372ba2ba1bd    0x1b17
